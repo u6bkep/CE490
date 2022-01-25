@@ -381,7 +381,7 @@
   (symbol (lib_id "Switch:SW_Push") (at 177.8 76.2 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 0e96edc7-511c-4807-b902-f127ede6d55a)
-    (property "Reference" "SW?" (id 0) (at 177.8 68.58 0))
+    (property "Reference" "SW_Pic_Cycle_Down" (id 0) (at 177.8 68.58 0))
     (property "Value" "SW_Push" (id 1) (at 177.8 71.12 0))
     (property "Footprint" "" (id 2) (at 177.8 71.12 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -443,7 +443,7 @@
   (symbol (lib_id "Switch:SW_Push") (at 177.8 63.5 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 8aadb536-0912-41b6-8947-16dafe2b9123)
-    (property "Reference" "SW?" (id 0) (at 177.8 55.88 0))
+    (property "Reference" "SW_Pic_Cycle_Up" (id 0) (at 177.8 55.88 0))
     (property "Value" "SW_Push" (id 1) (at 177.8 58.42 0))
     (property "Footprint" "" (id 2) (at 177.8 58.42 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -458,7 +458,7 @@
   (symbol (lib_id "Switch:SW_Push") (at 177.8 88.9 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid a078bdaf-7ad4-4663-aaa6-7ef9460f6c57)
-    (property "Reference" "SW?" (id 0) (at 177.8 81.28 0))
+    (property "Reference" "SW_Motor_Speed_Up" (id 0) (at 177.8 81.28 0))
     (property "Value" "SW_Push" (id 1) (at 177.8 83.82 0))
     (property "Footprint" "" (id 2) (at 177.8 83.82 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -473,7 +473,7 @@
   (symbol (lib_id "Switch:SW_Push") (at 177.8 101.6 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid b70ad38c-77d2-48e9-b0de-833b96561dfd)
-    (property "Reference" "SW?" (id 0) (at 177.8 93.98 0))
+    (property "Reference" "SW_Motor_Speed_Down" (id 0) (at 177.8 93.98 0))
     (property "Value" "SW_Push" (id 1) (at 177.8 96.52 0))
     (property "Footprint" "" (id 2) (at 177.8 96.52 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -488,7 +488,7 @@
   (symbol (lib_id "Switch:SW_Push") (at 177.8 50.8 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid c51dd1b4-0c6d-4258-ac0b-8e9e55a2f8e9)
-    (property "Reference" "SW?" (id 0) (at 177.8 43.18 0))
+    (property "Reference" "SW_On/Off" (id 0) (at 177.8 43.18 0))
     (property "Value" "SW_Push" (id 1) (at 177.8 45.72 0))
     (property "Footprint" "" (id 2) (at 177.8 45.72 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -508,20 +508,20 @@
     (path "/0b0b5aea-ddf3-49e4-99dd-8f1b6d4ec29d"
       (reference "R?") (unit 1) (value "10K") (footprint "")
     )
-    (path "/0e96edc7-511c-4807-b902-f127ede6d55a"
-      (reference "SW?") (unit 1) (value "SW_Push") (footprint "")
-    )
-    (path "/8aadb536-0912-41b6-8947-16dafe2b9123"
-      (reference "SW?") (unit 1) (value "SW_Push") (footprint "")
+    (path "/b70ad38c-77d2-48e9-b0de-833b96561dfd"
+      (reference "SW_Motor_Speed_Down") (unit 1) (value "SW_Push") (footprint "")
     )
     (path "/a078bdaf-7ad4-4663-aaa6-7ef9460f6c57"
-      (reference "SW?") (unit 1) (value "SW_Push") (footprint "")
-    )
-    (path "/b70ad38c-77d2-48e9-b0de-833b96561dfd"
-      (reference "SW?") (unit 1) (value "SW_Push") (footprint "")
+      (reference "SW_Motor_Speed_Up") (unit 1) (value "SW_Push") (footprint "")
     )
     (path "/c51dd1b4-0c6d-4258-ac0b-8e9e55a2f8e9"
-      (reference "SW?") (unit 1) (value "SW_Push") (footprint "")
+      (reference "SW_On/Off") (unit 1) (value "SW_Push") (footprint "")
+    )
+    (path "/0e96edc7-511c-4807-b902-f127ede6d55a"
+      (reference "SW_Pic_Cycle_Down") (unit 1) (value "SW_Push") (footprint "")
+    )
+    (path "/8aadb536-0912-41b6-8947-16dafe2b9123"
+      (reference "SW_Pic_Cycle_Up") (unit 1) (value "SW_Push") (footprint "")
     )
     (path "/6d2f6a49-b047-4653-9b58-2da1bd102bb0"
       (reference "U1") (unit 1) (value "ESP32_DevKit_V1_DOIT") (footprint "ESP32_DevKit_V1_DOIT:esp32_devkit_v1_doit")
