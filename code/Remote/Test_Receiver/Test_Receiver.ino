@@ -3,23 +3,24 @@
 
 //Structure example to receive data
 //Must match the sender structure
-typedef struct test_struct {
-  int x;
-  int y;
-} test_struct;
+typedef struct powerMotor_set {
+  int id; // must be unique for each sender board
+  int motorSpeed = 3;
+  int onOFF;
+} powerMotor_struct;
 
 //Create a struct_message called myData
-test_struct myData;
+powerMotor_struct pMotorData;
 
 //callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&myData, incomingData, sizeof(myData));
+  memcpy(&pMotorData, incomingData, sizeof(pMotorData));
   Serial.print("Bytes received: ");
   Serial.println(len);
   Serial.print("x: ");
-  Serial.println(myData.x);
+  Serial.println(pMotorData.onOFF);
   Serial.print("y: ");
-  Serial.println(myData.y);
+  Serial.println(pMotorData.motorSpeed);
   Serial.println();
 }
  

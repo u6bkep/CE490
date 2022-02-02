@@ -4,30 +4,51 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
+//Define the buttons
+#define powerButton_pin 5 // pin 5 connected to red button
+#define motorUpButton_pin 18 // pin 18 connected to blue button
+#define motorDownButton_pin 19 // pin 19 connected to green button
+#define fanUpButton_pin 25 // pin 25 connected to yellow button
+#define fanDownButton_pin 33 // pin 33 connected to black button
+
+//Button State Variables
+int PlastState = LOW; //previous state from the power input pin
+int PcurrentState; //current reading from power input pin
+int MUlastState = LOW; //previous state from the motor up input pin
+int MUcurrentState; //current reading from motor up input pin
+int MDlastState = LOW; //previous state from the motor down input pin
+int MDcurrentState; //current reading from motor down input pin
+int FUlastState = LOW; //previous state from the fan up input pin
+int FUcurrentState; //current reading from fan up input pin
+int FDlastState = LOW; //previous state from the fan down input pin
+int FDcurrentState; //current reading from fan down input pin
+
 // REPLACE WITH THE MAC Address of other two boards (recievers) 
-uint8_t broadcastAddress1[] = {0x40, 0x91, 0x51, 0x9B, 0xE6, 0x9C};
-uint8_t broadcastAddress2[] = {0xAC, 0x67, 0xB2, 0x2B, 0x64, 0xF4};
+uint8_t broadcastAddress1[] = {0x40, 0x91, 0x51, 0x9B, 0xE6, 0x9C}; //motor
+uint8_t broadcastAddress2[] = {0xAC, 0x67, 0xB2, 0x2B, 0x64, 0xF4}; //fan
 
-//data wanting to send (ll data in one structure as unsure which board needs what info)
-/*{typedef struct data_set {
-  int motorSpeed;
-  int fanIncrement;
+//data to send for Motor microcrontroller
+typedef struct powerMotor_set {
+  int id; // must be unique for each sender board
+  int motorSpeed = 3;
   int onOFF;
-} data_struct;
+} powerMotor_struct;
 
-// variable for storing the values to send to board
-data_set outputs; */
+//variable for storing values send to board
+powerMotor_struct pMotorData;
 
-//for testing
-typedef struct struct_message {
-    int id; // must be unique for each sender board
-    int x;
-    int y;
-} struct_message;
+//data to send for fan motorcontroller
+typedef struct powerFan_set {
+  int id; // must be unique for each sender board
+  int fanImg;
+  int onOFF;
+} powerFan_struct;
 
-struct_message myData;
+//variable for storing values send to board
+powerFan_struct pFanData; 
 
-            //Callback Funtion to know message was recieved or not
+
+//Callback Funtion to know message was recieved or not
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   char macStr[18];
@@ -86,12 +107,37 @@ void loop() {
  //esp_now_send (0 ... is to send message to all 'peers' if want to 
  //send to individual 'peer' put broadcastAddress# where # is their #
  // esp_err_t result = esp_now_send(broadcastAddress1, (uint8_t *) & variable, sizeof(variabl_struct));
- 
-  // testing
-  esp_err_t result = esp_now_send(0, (uint8_t *) &myData, sizeof(myData));
-  myData.id = 1;
-  myData.x = random(0,50);
-  myData.y = random(0,50);
+
+  //send button press code to motor motorcontroller
+  esp_err_t result = esp_now_send(0, (uint8_t *) &pMotorData, sizeof(pMotorData));
+  pMotorData.id = 1;
+  
+  // read the state of the On/Off Button:
+  PcurrentState = digitalRead(powerButton_pin);
+  if (PlastState == LOW && PcurrentState == HIGH)
+    pMotorData.onOFF = 1;
+  else 
+    pMotorData.onOFF = 0;
+  // save the the last state
+  PlastState = PcurrentState;
+
+  // read the state of the Motor Up Button:
+  MUcurrentState = digitalRead(motorUpButton_pin);
+  if (MUlastState == LOW && MUcurrentState == HIGH)
+    pMotorData.motorSpeed = pMotorData.motorSpeed + 1;
+  else 
+    pMotorData.motorSpeed = pMotorData.motorSpeed;
+  // save the the last state
+  MUlastState = MUcurrentState;
+  
+  // read the state of the On/Off Button:
+  MDcurrentState = digitalRead(motorDownButton_pin);
+  if (MDlastState == LOW && MDcurrentState == HIGH)
+    pMotorData.motorSpeed = pMotorData.motorSpeed - 1;
+  else 
+    pMotorData.motorSpeed = pMotorData.motorSpeed;
+  // save the the last state
+  MDlastState = MDcurrentState;
   
  //check to see if messge was sent successfully
   if (result == ESP_OK) {
