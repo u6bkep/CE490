@@ -1,0 +1,3 @@
+[submodule "code/prototypeing/esp-idf-dotstar-led-lib"]
+	path = code/prototypeing/esp-idf-dotstar-led-lib
+	url = git@github.com:sahilkhanna/esp-idf-dotstar-led-lib.git
