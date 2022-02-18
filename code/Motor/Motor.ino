@@ -2,7 +2,7 @@
 
 //Required Libraries Importation
 #include <esp_now.h>
-//#include <WiFi.h>
+#include <WiFi.h>
 
 #define motor_pin 5 //temporary
 
@@ -39,7 +39,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     }
 
   }
-  else if (myData.MotorUp) 
+  else if (myData.motorUp) 
   {
     //increase the motor speed
     if (motorSpeed < 5) 
@@ -48,13 +48,13 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       analogWrite(motor_pin, motorSpeed);
     }
   }
-  else if (myData.MotorDown)
+  else if (myData.motorDown)
   {
     //decrease the motor speed
     if (motorSpeed > 0) 
     {
-      //motorSpeed = motorSpeed - 1;
-      //analogWrite(motor_pin, motorSpeed);
+      motorSpeed = motorSpeed - 1;
+      analogWrite(motor_pin, motorSpeed);
     }
   }
 }
