@@ -4,6 +4,8 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
+#define motor_pin 34; //temporary
+
 // Structure example to receive data
 // Must match the sender structure
 typedef struct buttonState_set {
@@ -27,9 +29,13 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     if (!onOff)
     {
       //turn the motor on
+      maxSpeed = 1;
+      analogWrite(motor_pin, maxSpeed);
     }
     else {
       //turn the motor off
+      maxSpeed = 0;
+      analogWrite(motor_pin, maxSpeed);
     }
 
   }
@@ -37,18 +43,23 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     //increase the motor speed
     if (maxSpeed < 5) {
       maxSpeed = maxSpeed + 1;
+      analogWrite(motor_pin, maxSpeed);
     }
   }
   else if (MyData.MotorDown) {
     //decrease the motor speed
     if (maxSpeed > 0) {
       maxSpeed = maxSpeed - 1;
+      analogWrite(motor_pin, maxSpeed);
     }
   }
 }
 
 void setup() {
   // put your setup code here, to run once:
+
+  pinMode (motor_pin, OUTPUT); //set the motor pin as an output
+  
   // Initialize Serial Monitor
   Serial.begin(115200);
   
@@ -64,10 +75,8 @@ void setup() {
   // Once ESPNow is successfully Init, we will register for recv CB to
   // get recv packer info
   esp_now_register_recv_cb(OnDataRecv);
-  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 }
 
 void loop() {
-  //go to sleep immediately to save power
-  esp_deep_sleep_start();
+  //code to loop forever
 }
