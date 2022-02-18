@@ -11,19 +11,23 @@
 #define fanUpButton_pin 25 // pin 25 connected to yellow button
 #define fanDownButton_pin 33 // pin 33 connected to black button
 
-//Button State Variables
-int PlastState = LOW; //previous state from the power input pin
-int PcurrentState; //current reading from power input pin
-int MUlastState = LOW; //previous state from the motor up input pin
-int MUcurrentState; //current reading from motor up input pin
-int MDlastState = LOW; //previous state from the motor down input pin
-int MDcurrentState; //current reading from motor down input pin
-int FUlastState = LOW; //previous state from the fan up input pin
-int FUcurrentState; //current reading from fan up input pin
-int FDlastState = LOW; //previous state from the fan down input pin
-int FDcurrentState; //current reading from fan down input pin
+#define BUTTON_PIN_BITMASK 0x2020C0020 // pin masks = 2^5 + 2^18 + 2^19 + 2^25 + 2^33 = 8624275488 in dec
 
-// REPLACE WITH THE MAC Address of other two boards (recievers) 
+bool boardPowered = 0;      // variable for PCB LED board being powered
+
+//data to send for Button Status
+typedef struct buttonState_set {
+  int power = 0;      // 0 for not pressed, 1 for pressed
+  int motorUp = 0;    // 0 for not pressed, 1 for pressed
+  int motorDown = 0;  // 0 for not pressed, 1 for pressed
+  int nextImg = 0;    // 0 for not pressed, 1 for pressed
+  int prevImg = 0;    // 0 for not pressed, 1 for pressed
+} buttonState_struct;
+
+//variable for storing values send to board
+buttonState_struct pButtonState;
+
+// REPLACE WITH THE MAC Address of other two boards (recievers)
 uint8_t broadcastAddress1[] = {0x40, 0x91, 0x51, 0x9B, 0xE6, 0x9C}; //motor
 uint8_t broadcastAddress2[] = {0xAC, 0x67, 0xB2, 0x2B, 0x64, 0xF4}; //fan
 
@@ -31,7 +35,7 @@ uint8_t broadcastAddress2[] = {0xAC, 0x67, 0xB2, 0x2B, 0x64, 0xF4}; //fan
 typedef struct powerMotor_set {
   int id; // must be unique for each sender board
   int motorSpeed = 3;
-  int onOFF;
+  bool onOFF;
 } powerMotor_struct;
 
 //variable for storing values send to board
@@ -41,15 +45,15 @@ powerMotor_struct pMotorData;
 typedef struct powerFan_set {
   int id; // must be unique for each sender board
   int fanImg;
-  int onOFF;
+  bool onOFF;
 } powerFan_struct;
 
 //variable for storing values send to board
-powerFan_struct pFanData; 
+powerFan_struct pFanData;
 
 
-//Callback Funtion to know message was recieved or not
-// callback when data is sent
+// Callback Funtion to know message was recieved or not
+// Callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   char macStr[18];
   Serial.print("Packet from: ");
@@ -60,7 +64,6 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print(" send status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
-
 
 void setup() {
 
@@ -77,74 +80,110 @@ void setup() {
   }
 
   //registering the call back funtion to ESP-NOW
-   esp_now_register_send_cb(OnDataSent);
-   
+  esp_now_register_send_cb(OnDataSent);
+
   // set up to pair wiht other ESP-NOW devices
   esp_now_peer_info_t peerInfo;
-  peerInfo.channel = 0;  
+  peerInfo.channel = 0;
   peerInfo.encrypt = false;
 
-  
-  // register first ESP32 board  
+
+  // register first ESP32 board
   memcpy(peerInfo.peer_addr, broadcastAddress1, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
   }
-  
-//  register second ESP32 board 
+
+  //  register second ESP32 board
   memcpy(peerInfo.peer_addr, broadcastAddress2, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
-  } 
+  }
 
+
+  //*****this is a test area**********
+  // initialize the pins as an input:
+  pinMode(powerButton_pin, INPUT);
+  pinMode(motorUpButton_pin, INPUT);
+  pinMode(motorDownButton_pin, INPUT);
+  pinMode(fanUpButton_pin, INPUT);
+  pinMode(fanDownButton_pin, INPUT);
+
+  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 }
- 
+
+int iValueToSend = 0; //1 power, 2 motorDown, 3 motorUp, 4 prevImage, 5 nextImage
+
 void loop() {
-
- //check to see if mesage sent and variable of check is result
- //esp_now_send (0 ... is to send message to all 'peers' if want to 
- //send to individual 'peer' put broadcastAddress# where # is their #
- // esp_err_t result = esp_now_send(broadcastAddress1, (uint8_t *) & variable, sizeof(variabl_struct));
-
-  //send button press code to motor motorcontroller
-  esp_err_t result = esp_now_send(0, (uint8_t *) &pMotorData, sizeof(pMotorData));
-  pMotorData.id = 1;
+  //go to sleep
+  esp_deep_sleep_start();
+  //check to see if mesage sent and variable of check is result
+  //esp_now_send (0 ... is to send message to all 'peers' if want to
+  //send to individual 'peer' put broadcastAddress# where # is their #
+  //esp_err_t result = esp_now_send(broadcastAddress1, (uint8_t *) & variable, sizeof(variabl_struct));
   
-  // read the state of the On/Off Button:
-  PcurrentState = digitalRead(powerButton_pin);
-  if (PlastState == LOW && PcurrentState == HIGH)
-    pMotorData.onOFF = 1;
-  else 
-    pMotorData.onOFF = 0;
-  // save the the last state
-  PlastState = PcurrentState;
+  iValueToSend = 0;
 
-  // read the state of the Motor Up Button:
-  MUcurrentState = digitalRead(motorUpButton_pin);
-  if (MUlastState == LOW && MUcurrentState == HIGH)
-    pMotorData.motorSpeed = pMotorData.motorSpeed + 1;
-  else 
-    pMotorData.motorSpeed = pMotorData.motorSpeed;
-  // save the the last state
-  MUlastState = MUcurrentState;
-  
-  // read the state of the On/Off Button:
-  MDcurrentState = digitalRead(motorDownButton_pin);
-  if (MDlastState == LOW && MDcurrentState == HIGH)
-    pMotorData.motorSpeed = pMotorData.motorSpeed - 1;
-  else 
-    pMotorData.motorSpeed = pMotorData.motorSpeed;
-  // save the the last state
-  MDlastState = MDcurrentState;
-  
- //check to see if messge was sent successfully
+  // read the state of the pushbutton value:
+  pButtonState.power = digitalRead(powerButton_pin);
+  pButtonState.motorUp = digitalRead(powerButton_pin);
+  pButtonState.motorDown = digitalRead(powerButton_pin);
+  pButtonState.nextImg = digitalRead(powerButton_pin);
+  pButtonState.prevImg = digitalRead(powerButton_pin);
+
+  //get values of what is currently on the fan
+  //pMotorData = ???;
+  //pFanData = ???;
+  //boardPowered = ???;
+
+  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+  if (pButtonState.power == HIGH) {
+    // check if device is already on turn the device on: (ask microcontroller on PCB what the current status is
+    iValueToSend = 1;
+    if (boardPowered) {
+      //turn on the LED PCB, send signal to start the fan with lowest speed and first image
+      esp_err_t result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+    }
+    else {
+      //turn off the LED PCB, send signal to stop spinning and turn LEDs off
+      esp_err_t result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+    }
+  }
+  else if (pButtonState.motorDown == HIGH) {
+    // check if device is already at lowest speed
+    iValueToSend = 2;
+    if (pMotorData.motorSpeed > 0) { //***********need to get value for lowest speed possible*************
+      //Send signal to lower the speed of the board by one step
+      esp_err_t result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+    }
+  }
+  else if (pButtonState.motorUp == HIGH) {
+    // check if device is already on highest speed
+    iValueToSend = 3;
+    if (pMotorData.motorSpeed < 5) { //***********need to get value for highest speed possible*************
+      //Send signal to raise the fan blade speed by one step
+      esp_err_t result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+    }
+  }
+  else if (pButtonState.prevImg == HIGH) {
+    //Send Signal to go to the previous image
+    iValueToSend = 4;
+    esp_err_t result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+  }
+  else if (pButtonState.nextImg == HIGH) {
+    //Send signal to go to the next image
+    iValueToSend = 5;
+    esp_err_t result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+  }
+
+  //check to see if messge was sent successfully
   if (result == ESP_OK) {
     Serial.println("Sent with success");
   }
   else {
     Serial.println("Error sending the data");
   }
-  delay(10000);
+  delay(1000);//evenytually be removed
 }
