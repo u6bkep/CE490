@@ -8,14 +8,14 @@
 #define fanUpButton_pin 23 // pin 23 connected to Blue button
 #define fanDownButton_pin 22 // pin 22 connected to Green button
 
-#define bitmask1 ((1UL << powerButton_pin) | (1UL << motorUpButton_pin) | (1UL << motorDownButton_pin) | (1UL << fanUpButton_pin) | (1UL << fanDownButton_pin))
+#define bitwiseCalculation ((1UL << powerButton_pin) | (1UL << motorUpButton_pin) | (1UL << motorDownButton_pin) | (1UL << fanUpButton_pin) | (1UL << fanDownButton_pin))
 
-#define BUTTON_PIN_BITMASK (pow(2, powerButton_pin) | pow(2, motorUpButton_pin) | pow(2, motorDownButton_pin)\
-							 | pow(2, fanUpButton_pin) | pow(2, fanDownButton_pin))
+#define POW_Calculation (pow(2, powerButton_pin) + pow(2, motorUpButton_pin) + pow(2, motorDownButton_pin)\
+							 + pow(2, fanUpButton_pin) + pow(2, fanDownButton_pin))
 
 int main(int argc, char const *argv[])
 {
-	printf("bitmask1: 0x%lX\n",bitmask1);
-	printf("BUTTON_PIN_BITMASK: 0x%lX\n",BUTTON_PIN_BITMASK);
+	printf("bitwiseCalculation: 0x%016lX\n",bitwiseCalculation);
+	printf("POW_Calculation: 0x%016lX\n",POW_Calculation);
 	return 0;
 }
