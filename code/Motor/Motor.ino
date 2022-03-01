@@ -3,69 +3,98 @@
 //Required Libraries Importation
 #include <esp_now.h>
 #include <WiFi.h>
+#include <ESP32Servo.h> 
 
-#define motor_pin 5 //temporary
+Servo myservo;  // create servo object to control a servo
+
+#define servoPin  32      // GPIO pin used to connect the servo control (digital out)
+
+#if defined(ARDUINO_ESP32S2_DEV)
+#define potPin 10       // GPIO pin used to connect the potentiometer (analog in)
+#else
+#define potPin 34       // GPIO pin used to connect the potentiometer (analog in)
+#endif
+#define ADC_Max 4096    // This is the default ADC max value on the ESP32 (12 bit ADC width);
+                          // this width can be set (in low-level oode) from 9-12 bits, for a
+                          // a range of max values of 512-4096
+
+//float val;    // variable to read the value from the analog pin
 
 // Structure example to receive data
 // Must match the sender structure
 typedef struct buttonState_set {
-  bool power = 0;      // 0 for not pressed, 1 for pressed
-  bool motorUp = 0;    // 0 for not pressed, 1 for pressed
-  bool motorDown = 0;  // 0 for not pressed, 1 for pressed
-  bool nextImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
-  bool prevImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
+  int power = 0;      // 0 for not pressed, 1 for pressed
+  int motorUp = 0;    // 0 for not pressed, 1 for pressed
+  int motorDown = 0;  // 0 for not pressed, 1 for pressed
+  int nextImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
+  int prevImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
 } buttonState_struct;
 
 // Create a struct_message called myData
 buttonState_struct myData;
 bool onOff = 0; //0 for off, 1 for on
-int motorSpeed = 0; //lowest speed is 0, max is 5?
+int motorSpeed = 90; //90 for off, 60 for highest speed desired, 70 for slowest
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  myData.power = 0; myData.motorUp = 0; myData.motorDown = 0;
+  myData.nextImg = 0; myData.prevImg = 0;
   memcpy(&myData, incomingData, sizeof(myData));
+  myData.nextImg = 0; myData.prevImg = 0;
+  Serial.println(myData.power);
+  Serial.println(myData.motorUp);
+  Serial.println(myData.motorDown);
+  Serial.println(myData.nextImg);
+  Serial.println(myData.prevImg);
   if (myData.power) {
     //the power button was pressed
-    if (!onOff)
+    if (!onOff) //if off
     {
-      //turn the motor on
-      motorSpeed = 1;
-      analogWrite(motor_pin, motorSpeed);
+      onOff = 1;
+      //turn the motor on at slowest speed
+      motorSpeed = 70; //70 is the slowest speed we want
     }
     else {
       //turn the motor off
-      motorSpeed = 0;
-      analogWrite(motor_pin, motorSpeed);
+      onOff = 0;
+      motorSpeed = 90; //90 is off
     }
 
   }
   else if (myData.motorUp) 
   {
     //increase the motor speed
-    if (motorSpeed < 5) 
+    if (motorSpeed > 60 && motorSpeed <= 70) 
     {
-      motorSpeed = motorSpeed + 1;
-      analogWrite(motor_pin, motorSpeed);
+      motorSpeed = motorSpeed - 2;
     }
   }
   else if (myData.motorDown)
   {
     //decrease the motor speed
-    if (motorSpeed > 0) 
+    if (motorSpeed < 70 && motorSpeed >= 60) 
     {
-      motorSpeed = motorSpeed - 1;
-      analogWrite(motor_pin, motorSpeed);
+      motorSpeed = motorSpeed + 2;
     }
   }
 }
 
 void setup() {
   // put your setup code here, to run once:
-
-  pinMode (motor_pin, OUTPUT); //set the motor pin as an output
-
   // Initialize Serial Monitor
   Serial.begin(115200);
+  while (!Serial);
+  // Allow allocation of all timers
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+  myservo.setPeriodHertz(50);// Standard 50hz servo
+  myservo.attach(servoPin, 500, 2500);   // attaches the servo on pin 18 to the servo object
+                                         // using SG90 servo min/max of 500us and 2400us
+                                         // for MG995 large servo, use 1000us and 2000us,
+                                         // which are the defaults, so this line could be
+                                         // "myservo.attach(servoPin);"
 
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
@@ -82,5 +111,11 @@ void setup() {
 }
 
 void loop() {
-  //code to loop forever
+  //val = analogRead(potPin);             // read the value of the potentiometer (value between 0 and 1023)
+  //val = map(val, 0, ADC_Max, 0, 180);   // scale it to use it with the servo (value between 0 and 180)
+  //val = map(val, 0, ADC_Max, 60, 90);   //limiting motor speed to values previously discovered experimentaly
+  myservo.write(motorSpeed);              // set the servo position according to the scaled value
+  Serial.print(F("Using PWM Freq = ")); 
+  Serial.println(motorSpeed);
+  delay(200);                          // wait for the servo to get there
 }

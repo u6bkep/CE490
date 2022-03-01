@@ -5,23 +5,27 @@
 #include <WiFi.h>
 
 //Define the buttons
-#define powerButton_pin 34 // pin 34 connected to Red button
+//Only RTC IO can be used as a source for external wake
+//source. They are pins: 0,2,4,12-15,25-27,32-39.
+#define powerButton_pin 33 // pin 34 connected to Red button
 #define motorUpButton_pin 21 // pin 21 connected to Yellow button
 #define motorDownButton_pin 18 // pin 18 connected to Black button
 #define fanUpButton_pin 23 // pin 23 connected to Blue button
 #define fanDownButton_pin 22 // pin 22 connected to Green button
 
-#define BUTTON_PIN_BITMASK ((1UL << powerButton_pin) | (1UL << motorUpButton_pin) | (1UL << motorDownButton_pin) | (1UL << fanUpButton_pin) | (1UL << fanDownButton_pin)) 
+//#define BUTTON_PIN_BITMASK 0x30E000000
 
+//RTC_DATA_ATTR int bootCount = 0;
 bool boardPowered = 0;      // variable for PCB LED board being powered
+//int iValueToSend = 0; //1 power, 2 motorDown, 3 motorUp, 4 prevImage, 5 nextImage
 
 //data to send for Button Status
 typedef struct buttonState_set {
-  bool power = 0;      // 0 for not pressed, 1 for pressed
-  bool motorUp = 0;    // 0 for not pressed, 1 for pressed
-  bool motorDown = 0;  // 0 for not pressed, 1 for pressed
-  bool nextImg = 0;    // 0 for not pressed, 1 for pressed
-  bool prevImg = 0;    // 0 for not pressed, 1 for pressed
+  int power = 0;      // 0 for not pressed, 1 for pressed
+  int motorUp = 0;    // 0 for not pressed, 1 for pressed
+  int motorDown = 0;  // 0 for not pressed, 1 for pressed
+  int nextImg = 0;    // 0 for not pressed, 1 for pressed
+  int prevImg = 0;    // 0 for not pressed, 1 for pressed
 } buttonState_struct;
 
 //variable for storing values send to board
@@ -54,6 +58,26 @@ typedef struct powerFan_set {
 //variable for storing values send to board
 powerFan_struct pFanData;
 
+/*
+  Method to print the reason by which ESP32
+  has been awaken from sleep
+
+  void print_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason)
+  {
+    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
+  }
+  }*/
+
 
 // Callback Funtion to know message was recieved or not
 // Callback when data is sent
@@ -72,6 +96,14 @@ void setup() {
 
   //initialise serial monitor for debugging purposes
   Serial.begin(115200);
+  while (!Serial){}
+
+  //Increment boot number and print it every reboot
+  //++bootCount;
+  //Serial.println("Boot number: " + String(bootCount));
+
+  //Print the wakeup reason for ESP32
+  //print_wakeup_reason();
 
   // set device as Wi-Fi station
   WiFi.mode(WIFI_STA);
@@ -88,22 +120,22 @@ void setup() {
   // Register Motor peer
   esp_now_peer_info_t peerInfo;
   memcpy(peerInfo.peer_addr, broadcastAddressMotor, 6);
-  peerInfo.channel = 0;  
+  peerInfo.channel = 0;
   peerInfo.encrypt = false;
-  
-  // Add Motor MCU as a peer   
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+
+  // Add Motor MCU as a peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
   }
 
   // Register Fan peer
   memcpy(peerInfo.peer_addr, broadcastAddressFan, 6);
-  peerInfo.channel = 0;  
+  peerInfo.channel = 0;
   peerInfo.encrypt = false;
-  
-  // Add Fan MCU as a peer   
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+
+  // Add Fan MCU as a peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
   }
@@ -111,29 +143,39 @@ void setup() {
 
   //*****this is a test area**********
   // initialize these pins as inputs:
-  pinMode(powerButton_pin, INPUT);
-  pinMode(motorUpButton_pin, INPUT);
-  pinMode(motorDownButton_pin, INPUT);
-  pinMode(fanUpButton_pin, INPUT);
-  pinMode(fanDownButton_pin, INPUT);
+  pinMode(powerButton_pin, INPUT_PULLUP);
+  pinMode(motorUpButton_pin, INPUT_PULLUP);
+  pinMode(motorDownButton_pin, INPUT_PULLUP);
+  pinMode(fanUpButton_pin, INPUT_PULLUP);
+  pinMode(fanDownButton_pin, INPUT_PULLUP);
 
-  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_25,0); //1 = High, 0 = Low
+  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_26,0); //1 = High, 0 = Low
+  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_27,0); //1 = High, 0 = Low
+  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_32,0); //1 = High, 0 = Low
+  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_33,0); //1 = High, 0 = Low
+
+  //esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+  //go to sleep now
+  //Serial.println("Going to sleep now");
+  delay(500);
+  //esp_deep_sleep_start();
+  //anything past this will not be used
 }
 
-int iValueToSend = 0; //1 power, 2 motorDown, 3 motorUp, 4 prevImage, 5 nextImage
-
+esp_err_t result;
 void loop() {
   //go to sleep immediately to save power
-  esp_deep_sleep_start();
 
   // read the state of the pushbutton value:
   pButtonState.power = digitalRead(powerButton_pin);
-  pButtonState.motorUp = digitalRead(powerButton_pin);
-  pButtonState.motorDown = digitalRead(powerButton_pin);
-  pButtonState.nextImg = digitalRead(powerButton_pin);
-  pButtonState.prevImg = digitalRead(powerButton_pin);
+  pButtonState.motorUp = digitalRead(motorUpButton_pin);
+  pButtonState.motorDown = digitalRead(motorDownButton_pin);
+  pButtonState.nextImg = digitalRead(fanUpButton_pin);
+  pButtonState.prevImg = digitalRead(fanDownButton_pin);
 
-  esp_err_t result;
+  result = -1;
 
   //check to see if mesage sent and variable of check is result
   //esp_now_send (0 ... is to send message to all 'peers' if want to
@@ -146,46 +188,46 @@ void loop() {
   //boardPowered = ???;
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
-  if (pButtonState.power == HIGH) {
+  if (pButtonState.power == LOW) {
+    pButtonState.power = 1; pButtonState.motorUp = 0;
+    pButtonState.motorDown = 0; pButtonState.nextImg = 0; pButtonState.prevImg = 0;
     // check if device is already on turn the device on: (ask microcontroller on PCB what the current status is
-    if (boardPowered) {
-      //turn on the LED PCB, send signal to start the fan with lowest speed and first image
-      result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
-    }
-    else {
-      //turn off the LED PCB, send signal to stop spinning and turn LEDs off
-      result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
-    }
+    //turn on the LED PCB, send signal to start the fan with lowest speed and first image
+    Serial.println("Attempting to turn on fan and loading first image");
+    result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
   }
-  else if (pButtonState.motorDown == HIGH) {
-    // check if device is already at lowest speed
-    if (pMotorData.motorSpeed > 0) { //***********need to get value for lowest speed possible*************
-      //Send signal to lower the speed of the board by one step
-      result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
-    }
+  else if (pButtonState.motorDown == LOW) {
+    pButtonState.power = 0; pButtonState.motorUp = 0;
+    pButtonState.motorDown = 1; pButtonState.nextImg = 0; pButtonState.prevImg = 0;
+    //Send signal to lower the speed of the board by one step
+    Serial.println("Decreasing motor speed.");
+    result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
   }
-  else if (pButtonState.motorUp == HIGH) {
-    // check if device is already on highest speed
-    if (pMotorData.motorSpeed < 5) { //***********need to get value for highest speed possible*************
-      //Send signal to raise the fan blade speed by one step
-      result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
-    }
+  else if (pButtonState.motorUp == LOW) {
+    pButtonState.power = 0; pButtonState.motorUp = 1;
+    pButtonState.motorDown = 0; pButtonState.nextImg = 0; pButtonState.prevImg = 0;
+    //Send signal to raise the fan blade speed by one step
+    Serial.println("Increasing motor speed.");
+    result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
   }
-  else if (pButtonState.prevImg == HIGH) {
+  else if (pButtonState.prevImg == LOW) {
+    pButtonState.power = 0; pButtonState.motorUp = 0;
+    pButtonState.motorDown = 0; pButtonState.nextImg = 0; pButtonState.prevImg = 1;
     //Send Signal to go to the previous image
-    result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+    Serial.println("Going to previous image.");
+    result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
   }
-  else if (pButtonState.nextImg == HIGH) {
+  else if (pButtonState.nextImg == LOW) {
+    pButtonState.power = 0; pButtonState.motorUp = 0;
+    pButtonState.motorDown = 0; pButtonState.nextImg = 1; pButtonState.prevImg = 0;
     //Send signal to go to the next image
-    result = esp_now_send(0, (uint8_t *) &iValueToSend, sizeof(uint8_t)); //address of peer, address of data sent, length of data being sent
+    Serial.println("Going to next image.");
+    result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
   }
 
   //check to see if messge was sent successfully
   if (result == ESP_OK) {
     Serial.println("Sent with success");
+    delay(300);//for debugging purposes
   }
-  else {
-    Serial.println("Error sending the data");
-  }
-  delay(1000);//eventually be removed
 }
