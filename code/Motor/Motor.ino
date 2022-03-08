@@ -8,6 +8,8 @@
 Servo myservo;  // create servo object to control a servo
 
 #define servoPin  32      // GPIO pin used to connect the servo control (digital out)
+#define minSpeed  75
+#define maxSpeed  65
 
 #if defined(ARDUINO_ESP32S2_DEV)
 #define potPin 10       // GPIO pin used to connect the potentiometer (analog in)
@@ -33,7 +35,7 @@ typedef struct buttonState_set {
 // Create a struct_message called myData
 buttonState_struct myData;
 bool onOff = 0; //0 for off, 1 for on
-int motorSpeed = 90; //90 for off, 60 for highest speed desired, 70 for slowest
+int motorSpeed = 90; //90 for off, 65 for highest speed desired, 75 for slowest
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -52,7 +54,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     {
       onOff = 1;
       //turn the motor on at slowest speed
-      motorSpeed = 70; //70 is the slowest speed we want
+      motorSpeed = minSpeed; //75 is the slowest speed we want
     }
     else {
       //turn the motor off
@@ -64,7 +66,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   else if (myData.motorUp) 
   {
     //increase the motor speed
-    if (motorSpeed > 60 && motorSpeed <= 70) 
+    if (motorSpeed > maxSpeed && motorSpeed <= minSpeed) 
     {
       motorSpeed = motorSpeed - 2;
     }
@@ -72,7 +74,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   else if (myData.motorDown)
   {
     //decrease the motor speed
-    if (motorSpeed < 70 && motorSpeed >= 60) 
+    if (motorSpeed < minSpeed && motorSpeed >= maxSpeed) 
     {
       motorSpeed = motorSpeed + 2;
     }
@@ -113,7 +115,7 @@ void setup() {
 void loop() {
   //val = analogRead(potPin);             // read the value of the potentiometer (value between 0 and 1023)
   //val = map(val, 0, ADC_Max, 0, 180);   // scale it to use it with the servo (value between 0 and 180)
-  //val = map(val, 0, ADC_Max, 60, 90);   //limiting motor speed to values previously discovered experimentaly
+  //val = map(val, 0, ADC_Max, maxSpeed, 90);   //limiting motor speed to values previously discovered experimentaly
   myservo.write(motorSpeed);              // set the servo position according to the scaled value
   Serial.print(F("Using PWM Freq = ")); 
   Serial.println(motorSpeed);
