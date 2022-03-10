@@ -125,3 +125,6 @@ managed_components
 
 #gcc unamed compiles
 a.out
+
+#python virtual environments
+.venv*
