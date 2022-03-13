@@ -3,6 +3,7 @@
 //Required Libraries Importation
 #include <esp_now.h>
 #include <WiFi.h>
+#include "Image.h"
 
 #include <Adafruit_DotStar.h>
 // Because conditional #includes don't work w/Arduino sketches...
@@ -124,6 +125,7 @@ typedef struct buttonState_set {
 buttonState_struct myData;
 bool onOff = 0; //0 for off, 1 for on
 int fanImage = 0; //0 is no image
+int totalImages = 3 + 1;
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -134,40 +136,38 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     {
       //turn the motor on
       fanImage = 1; //first image
+      chooseImage(fanImage);
     }
     else {
       //turn the motor off
       fanImage = 0;//no image
+      chooseImage(fanImage);
     }
+    onOff = !onOff;
 
   }
   else if (myData.nextImg) {
     //change to the next image
-    fanImage = (fanImage + 1) % 3;
+    fanImage = (fanImage + 1) % totalImages;
     if (fanImage == 0)
     {
       fanImage = 1;
     }
+    chooseImage(fanImage);
   }
   else if (myData.prevImg) {
     //change to the previous image
-    fanImage = (fanImage - 1) % 3;
+    fanImage = (fanImage - 1) % totalImages;
     if (fanImage == 0)
     {
       fanImage = 1;
     }
+    chooseImage(fanImage);
   }
 }
 
 void setup() {
   // put your setup code here, to run once:
-
-  #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
-  clock_prescale_set(clock_div_1); // Enable 16 MHz on Trinket
-#endif
-
-  strip.begin(); // Initialize pins for output
-  strip.show();  // Turn all LEDs off ASAP
 
   // Initialize Serial Monitor
   Serial.begin(115200);
@@ -186,25 +186,8 @@ void setup() {
   esp_now_register_recv_cb(OnDataRecv);
 }
 
-// Runs 25 LEDs at a time along strip, cycling through red, green and blue.
-// This requires about 200 mA for all the 'on' pixels + 1 mA per 'off' pixel.
-
-int      head  = 0, tail = -25; // Index of first 'on' and 'off' pixels
-uint32_t color = 0xFF0000;      // 'On' color (starts red)
-
 void loop() {
   //code to loop forever
-  strip.setPixelColor(head, color); // 'On' pixel at head
-  strip.setPixelColor(tail, 0);     // 'Off' pixel at tail
-  strip.show();                     // Refresh strip
-  delay(20);                        // Pause 20 milliseconds (~50 FPS)
-
-  if(++head >= NUMPIXELS) {         // Increment head index.  Off end of strip?
-    head = 0;                       //  Yes, reset head index to start
-    if((color >>= 8) == 0)          //  Next color (R->G->B) ... past blue now?
-      color = 0xFF0000;             //   Yes, reset to red
-  }
-  if(++tail >= NUMPIXELS) tail = 0; // Increment, reset tail index
 }
 
 //int timer = 800;    
