@@ -10,11 +10,11 @@
 #include <SPI.h>         // COMMENT OUT THIS LINE FOR GEMMA OR TRINKET
 //#include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
 
-#define NUMPIXELS 15 // Number of LEDs in strip
+#define NUMPIXELS 25 // Number of LEDs in strip
 
 // Here's how to control the LEDs from any two pins:
-#define DATAPIN    21
-#define CLOCKPIN   18
+#define DATAPIN    5
+#define CLOCKPIN   15
 Adafruit_DotStar strip(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
 // The last parameter is optional -- this is the color data order of the
 // DotStar strip, which has changed over time in different production runs.
@@ -31,6 +31,9 @@ void setup() {
   clock_prescale_set(clock_div_1); // Enable 16 MHz on Trinket
 #endif
 
+Serial.begin(115200);
+  while (!Serial);
+
   strip.begin(); // Initialize pins for output
   strip.show();  // Turn all LEDs off ASAP
 }
@@ -38,8 +41,8 @@ void setup() {
 // Runs 10 LEDs at a time along strip, cycling through red, green and blue.
 // This requires about 200 mA for all the 'on' pixels + 1 mA per 'off' pixel.
 
-int      head  = 0, tail = -10; // Index of first 'on' and 'off' pixels
-uint32_t color = 0xFF0000;      // 'On' color (starts red)
+int      head  = 0, tail = -(NUMPIXELS - 1); // Index of first 'on' and 'off' pixels
+uint32_t color = 0xff0000;      // 'On' color (starts red)
 
 void loop() {
 
@@ -51,7 +54,8 @@ void loop() {
   if(++head >= NUMPIXELS) {         // Increment head index.  Off end of strip?
     head = 0;                       //  Yes, reset head index to start
     if((color >>= 8) == 0)          //  Next color (R->G->B) ... past blue now?
-      color = 0x330000;             //   Yes, reset to red
+      color = 0xff0000;             //   Yes, reset to red
   }
   if(++tail >= NUMPIXELS) tail = 0; // Increment, reset tail index
+  Serial.println("loop");
 }
