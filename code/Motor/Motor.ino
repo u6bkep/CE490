@@ -25,11 +25,11 @@ Servo myservo;  // create servo object to control a servo
 // Structure example to receive data
 // Must match the sender structure
 typedef struct buttonState_set {
-  int power = 0;      // 0 for not pressed, 1 for pressed
-  int motorUp = 0;    // 0 for not pressed, 1 for pressed
-  int motorDown = 0;  // 0 for not pressed, 1 for pressed
-  int nextImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
-  int prevImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
+  bool power = 0;      // 0 for not pressed, 1 for pressed
+  bool motorUp = 0;    // 0 for not pressed, 1 for pressed
+  bool motorDown = 0;  // 0 for not pressed, 1 for pressed
+  bool nextImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
+  bool prevImg = 0;    // 0 for not pressed, 1 for pressed, motor does not care
 } buttonState_struct;
 
 // Create a struct_message called myData

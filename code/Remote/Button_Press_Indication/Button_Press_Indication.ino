@@ -1,6 +1,6 @@
 // Button
 
-  #define BLUEBUTTON_PIN 5  // GIOP21 pin connected to button
+  #define BLUEBUTTON_PIN 33  // GIOP21 pin connected to button
 
 // Variables will change:
 int lastState = LOW;  // the previous state from the input pin
@@ -8,7 +8,7 @@ int currentState;     // the current reading from the input pin
 
 void setup() {
   // initialize serial communication at 9600 bits per second:
-  Serial.begin(9600);
+  Serial.begin(115200);
   // initialize the pushbutton pin as an pull-up input
   // the pull-up input pin will be HIGH when the switch is open and LOW when the switch is closed.
   pinMode(BLUEBUTTON_PIN, INPUT_PULLUP);
