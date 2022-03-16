@@ -26,8 +26,8 @@ uint8_t imageHeight = 0;
 
 
 
-xTaskHandle imageRenderingTaskHandle;
-xTaskHandle imageDecodingTaskHandle;
+PNG png;
+uint8_t *image = NULL;
 
 
 #define NUMPIXELS 25 // Number of LEDs in strip
@@ -82,8 +82,6 @@ void PngRenderer::init()
     pinMode(HALLPIN, INPUT_PULLUP);
     attachInterrupt(HALLPIN, isr, FALLING);
 
-    xdecodeSemaphore = xSemaphoreCreateMutex();
-
     //setup adafruit dotstart
     strip.begin(); // Initialize pins for output
     //strip.setBrightness(255/2);
@@ -95,6 +93,8 @@ void PngRenderer::init()
 
 void PngRenderer::chooseImage(int imageNum)
 {
+
+    //PngRenderer* _this = (PngRenderer*) __this;
         //setup png image
     png.openFLASH(images[imageNum].start, images[imageNum].end - images[imageNum].start, NULL);
 
@@ -136,7 +136,7 @@ void PngRenderer::chooseImage(int imageNum)
         if(image != NULL)
         {
             Serial.print("image buffer location: ");
-            Serial.println(image);
+            Serial.println(*(image));
             png.setBuffer(image);
             png.decode(NULL, 0);
         }
@@ -148,7 +148,6 @@ void PngRenderer::chooseImage(int imageNum)
 
         Serial.print("PNG.decode.getLastError: ");
         Serial.println(png.getLastError());
-    }
 }
 
 uint8_t PngRenderer::getNumberOfImages()
