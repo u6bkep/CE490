@@ -10,8 +10,8 @@
 #define powerButton_pin 33 // pin 34 connected to Red button
 #define motorUpButton_pin 21 // pin 21 connected to Yellow button
 #define motorDownButton_pin 18 // pin 18 connected to Black button
-#define fanUpButton_pin 23 // pin 23 connected to Blue button
-#define fanDownButton_pin 22 // pin 22 connected to Green button
+#define fanUpButton_pin 22 // pin 23 connected to Blue button
+#define fanDownButton_pin 23 // pin 22 connected to Green button
 
 //#define BUTTON_PIN_BITMASK 0x30E000000
 
@@ -237,59 +237,64 @@ void loop() {
     Serial.println("Attempting to turn on fan and loading first image");
     Serial.print("power button = ");
     Serial.println(pButtonState.power);
-    result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
+    //result = esp_now_send(0, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
+    result = esp_now_send(broadcastAddressFan, (uint8_t *) &pButtonState, sizeof(buttonState_struct));
+    delay(50);
+    result = esp_now_send(broadcastAddressMotor, (uint8_t *) &pButtonState, sizeof(buttonState_struct));
   }
   else if (pButtonState.motorDown == LOW) {
     pButtonState.power = 0; pButtonState.motorUp = 0;
     pButtonState.motorDown = 1; pButtonState.nextImg = 0; pButtonState.prevImg = 0;
     //Send signal to lower the speed of the board by one step
     Serial.println("Decreasing motor speed.");
-    Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
+    /*Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
                  pButtonState.power, 
                  pButtonState.motorUp,
                  pButtonState.motorDown,
                  pButtonState.nextImg, 
-                 pButtonState.prevImg);
-    result = esp_now_send(broadcastAddressMotor, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
+                 pButtonState.prevImg);*/
+    result = esp_now_send(broadcastAddressMotor, (uint8_t *) &pButtonState, sizeof(buttonState_struct)); //address of peer, address of data sent, length of data being sent
   }
   else if (pButtonState.motorUp == LOW) {
     pButtonState.power = 0; pButtonState.motorUp = 1;
     pButtonState.motorDown = 0; pButtonState.nextImg = 0; pButtonState.prevImg = 0;
     //Send signal to raise the fan blade speed by one step
     Serial.println("Increasing motor speed.");
-    Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
+    /*Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
                  pButtonState.power, 
                  pButtonState.motorUp,
                  pButtonState.motorDown,
                  pButtonState.nextImg, 
-                 pButtonState.prevImg);
-    result = esp_now_send(broadcastAddressMotor, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
+                 pButtonState.prevImg);*/
+    result = esp_now_send(broadcastAddressMotor, (uint8_t *) &pButtonState, sizeof(buttonState_struct)); //address of peer, address of data sent, length of data being sent
   }
   else if (pButtonState.prevImg == LOW) {
     pButtonState.power = 0; pButtonState.motorUp = 0;
     pButtonState.motorDown = 0; pButtonState.nextImg = 0; pButtonState.prevImg = 1;
     //Send Signal to go to the previous image
     Serial.println("Going to previous image.");
-    Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
+    /*Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
                  pButtonState.power, 
                  pButtonState.motorUp,
                  pButtonState.motorDown,
                  pButtonState.nextImg, 
-                 pButtonState.prevImg);
-    result = esp_now_send(broadcastAddressFan, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
+                 pButtonState.prevImg);*/
+    result = esp_now_send(broadcastAddressFan, (uint8_t *) &pButtonState, sizeof(buttonState_struct)); //address of peer, address of data sent, length of data being sent
+    delay(500);
   }
   else if (pButtonState.nextImg == LOW) {
     pButtonState.power = 0; pButtonState.motorUp = 0;
     pButtonState.motorDown = 0; pButtonState.nextImg = 1; pButtonState.prevImg = 0;
     //Send signal to go to the next image
     Serial.println("Going to next image.");
-    Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
+    /*Serial.printf("pButtonState.power = %d\npButtonState.motorUp = %d\npButtonState.motorDown = %d\npButtonState.nextImg = %d\npButtonState.prevImg = %d\n", 
                  pButtonState.power, 
                  pButtonState.motorUp,
                  pButtonState.motorDown,
                  pButtonState.nextImg, 
-                 pButtonState.prevImg);
-    result = esp_now_send(broadcastAddressFan, (uint8_t *) &pButtonState, sizeof(pButtonState)); //address of peer, address of data sent, length of data being sent
+                 pButtonState.prevImg);*/
+    result = esp_now_send(broadcastAddressFan, (uint8_t *) &pButtonState, sizeof(buttonState_struct)); //address of peer, address of data sent, length of data being sent
+    delay(500);
   }
 
   //check to see if messge was sent successfully

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_DotStar.h>
 #include <esp_now.h>
-#include <SPI.h>
+//#include <SPI.h>
 #include <PNGdec.h>
 #include <WiFi.h>
 #include "image.hpp"
@@ -29,6 +29,7 @@ bool onOff = 0; //0 for off, 1 for on
 int fanImage = 0; //0 is no image
 int totalImages = 0;
 
+
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
@@ -36,26 +37,17 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   //Serial.printf("myData.power = %d\nmyData.nextImg = %d\nmyData.prevImg = %d\n", myData.power, myData.nextImg, myData.prevImg);
   if (myData.power) {
     //the power button was pressed
-    if (!onOff)
-    {
-      //turn the motor on
-      //fanImage = 1; //first image
-      //imageRenderer.chooseImage(fanImage);
-    }
-    else {
+    
       //turn the motor off
-      //fanImage = 0;//no image
-      //imageRenderer.chooseImage(fanImage);
-    }
-    onOff = !onOff;
-
+      fanImage = 0;//no image
+      imageRenderer.chooseImage(fanImage);
   }
   else if (myData.nextImg) {
     //change to the next image
     fanImage++;
     if (fanImage >= totalImages)
     {
-      fanImage = 0;
+      fanImage = 1;
     }
     imageRenderer.chooseImage(fanImage);
     Serial.print("Setting image #");
@@ -64,7 +56,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   else if (myData.prevImg) {
     //change to the previous image
     fanImage--;
-    if (fanImage < 0)
+    if (fanImage < 1)
     {
       fanImage = totalImages - 1;
     }
@@ -103,7 +95,9 @@ void setup() {
 
 void loop() {
   //code to loop forever
-  imageRenderer.renderTask();
+  //imageRenderer.renderTask();
+
+  vTaskDelete(NULL);
 }
 
 //int timer = 800;    

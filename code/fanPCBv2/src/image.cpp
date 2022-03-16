@@ -2,10 +2,10 @@
 #include <Adafruit_DotStar.h>
 #include <SPI.h>
 #include <PNGdec.h>
-
+#include <FreeRTOS.h>
 #include "image.hpp"
 
-//settup pointers for files fullrgb.png
+//settup pointers for files fullrgb.png Umaruchan.png
 extern uint8_t bulldog_png_start[] asm("_binary_src_bulldog_png_start");
 extern uint8_t bulldog_png_end[] asm("_binary_src_bulldog_png_end");
 
@@ -15,11 +15,20 @@ extern uint8_t pineapple_png_end[] asm("_binary_src_pineapple_png_end");
 extern uint8_t fullrgb_png_start[] asm("_binary_src_fullrgb_png_start");
 extern uint8_t fullrgb_png_end[] asm("_binary_src_fullrgb_png_end");
 
+extern uint8_t black_png_start[] asm("_binary_src_black_png_start");
+extern uint8_t black_png_end[] asm("_binary_src_black_png_end");
+
+extern uint8_t Umaruchan_png_start[] asm("_binary_src_Umaruchan_png_start");
+extern uint8_t Umaruchan_png_end[] asm("_binary_src_Umaruchan_png_end");
+
 uint8_t imageWidth = 0;
 uint8_t imageHeight = 0;
-uint8_t *image;
 
-PNG png;
+
+
+xTaskHandle imageRenderingTaskHandle;
+xTaskHandle imageDecodingTaskHandle;
+
 
 #define NUMPIXELS 25 // Number of LEDs in strip
 
@@ -39,14 +48,17 @@ struct pngFile_t
 
 pngFile_t images[] =
     {
+        {black_png_start, black_png_end},
         {bulldog_png_start, bulldog_png_end},
         {pineapple_png_start, pineapple_png_end},
-        {fullrgb_png_start, fullrgb_png_end}};
+        {fullrgb_png_start, fullrgb_png_end,},
+        {Umaruchan_png_start, Umaruchan_png_end}
+ };
 
 volatile unsigned long lastspinMicros = 0;
 volatile unsigned long spinMicros = 0;
 volatile unsigned long spinPeriod = 20000ul;
-volatile bool triggered = 0;
+//volatile bool triggered = 0;
 
 struct pixel_t
 {
@@ -60,7 +72,20 @@ void IRAM_ATTR isr()
     lastspinMicros = spinMicros;
     spinMicros = micros();
     spinPeriod = spinMicros - lastspinMicros;
-    triggered = 1;
+    if(spinPeriod > 1000000)
+    {
+        spinPeriod = 20000;
+    }
+    //triggered = 1;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR(imageRenderingTaskHandle, &xHigherPriorityTaskWoken);
+    if(xHigherPriorityTaskWoken == pdTRUE)
+        portYIELD_FROM_ISR();
+}
+
+void PngRenderer::startTaskImpl(void* _this)
+{
+    ((PngRenderer*)_this)->renderTask();
 }
 
 void PngRenderer::init()
@@ -70,63 +95,92 @@ void PngRenderer::init()
     pinMode(HALLPIN, INPUT_PULLUP);
     attachInterrupt(HALLPIN, isr, FALLING);
 
+    xdecodeSemaphore = xSemaphoreCreateMutex();
+
     //setup adafruit dotstart
     strip.begin(); // Initialize pins for output
     //strip.setBrightness(255/2);
     strip.fill(0, 0, numberOfPixels);
     strip.show(); // Turn all LEDs off
 
+    
+
+    xTaskCreate(startTaskImpl, "renderTask", 2048, NULL, 1, &imageRenderingTaskHandle);
+    xTaskCreate(chooseImageStatic, "decodeTask", 2048, this, 1, &imageDecodingTaskHandle);
+
     chooseImage(selectedImage);
 }
 
 void PngRenderer::chooseImage(int imageNum)
 {
-    //setup png image
-    png.openFLASH(images[imageNum].start, images[imageNum].end - images[imageNum].start, NULL);
+    selectedImage = imageNum;
+    xTaskNotifyGive(imageDecodingTaskHandle);
+}
 
-    Serial.print("file lenth: ");
-    Serial.println(images[imageNum].end - images[imageNum].start);
-
-    Serial.print("PNG.getLastError: ");
-    Serial.println(png.getLastError());
-
-    Serial.print("PNG.getHeight: ");
-    Serial.println(png.getHeight());
-    imageHeight = png.getHeight();
-
-    Serial.print("PNG.getWidth: ");
-    Serial.println(png.getWidth());
-    imageWidth = png.getWidth();
-
-    Serial.print("PNG.getBpp: ");
-    Serial.println(png.getBpp());
-
-    Serial.print("PNG.hasAlpha: ");
-    Serial.println(png.hasAlpha());
-
-    Serial.print("PNG.isInterlaced: ");
-    Serial.println(png.isInterlaced());
-
-    Serial.print("PNG.getPixelType: ");
-    Serial.println(png.getPixelType());
-
-    Serial.print("PNG.getBufferSize: ");
-    Serial.println(png.getBufferSize());
-
-    //if image is already allocated, free
-    if (!image)
+void PngRenderer::chooseImageStatic(void * __this)
+{
+    PngRenderer* _this = (PngRenderer*) __this;
+    while(true)
     {
-        free(image);
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        xSemaphoreTake(_this->xdecodeSemaphore, 1);
+        //setup png image
+        _this->png.openFLASH(_this->images[_this->selectedImage].start, _this->images[_this->selectedImage].end - _this->images[_this->selectedImage].start, NULL);
+
+        Serial.print("file lenth: ");
+        Serial.println(_this->images[_this->selectedImage].end - _this->images[_this->selectedImage].start);
+
+        Serial.print("PNG.getLastError: ");
+        Serial.println(_this->png.getLastError());
+
+        Serial.print("PNG.getHeight: ");
+        Serial.println(_this->png.getHeight());
+        imageHeight = _this->png.getHeight();
+
+        Serial.print("PNG.getWidth: ");
+        Serial.println(_this->png.getWidth());
+        imageWidth = _this->png.getWidth();
+
+        Serial.print("PNG.getBpp: ");
+        Serial.println(_this->png.getBpp());
+
+        Serial.print("PNG.hasAlpha: ");
+        Serial.println(_this->png.hasAlpha());
+
+        Serial.print("PNG.isInterlaced: ");
+        Serial.println(_this->png.isInterlaced());
+
+        Serial.print("PNG.getPixelType: ");
+        Serial.println(_this->png.getPixelType());
+
+        Serial.print("PNG.getBufferSize: ");
+        Serial.println(_this->png.getBufferSize());
+
+        //if image is already allocated, free
+        if (_this->image != NULL)
+        {
+            vPortFree(_this->image);
+        }
+
+        _this->image = (uint8_t *)pvPortMalloc(_this->png.getBufferSize());
+        if(_this->image != NULL)
+        {
+            Serial.print("image buffer location: ");
+            Serial.println(*(_this->image));
+            _this->png.setBuffer(_this->image);
+            _this->png.decode(NULL, 0);
+        }
+        else
+        {
+            Serial.println("image failed to malloc");
+        }
+        
+
+        //Serial.print("PNG.decode.getLastError: ");
+        //Serial.println(png.getLastError());
+
+        xSemaphoreGive(_this->xdecodeSemaphore);
     }
-
-    image = (uint8_t *)malloc(png.getBufferSize());
-    Serial.print("image buffer location: ");
-    Serial.println(*image);
-    png.setBuffer(image);
-    png.decode(NULL, 0);
-
-    Serial.print("PNG.decode.getLastError: ");
-    Serial.println(png.getLastError());
 }
 
 uint8_t PngRenderer::getNumberOfImages()
@@ -141,9 +195,10 @@ void PngRenderer::renderTask()
 {
     while (true)
     {
-        while (triggered == 0)
-            ;
-        triggered = 0;
+        
+        
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        xSemaphoreTake(xdecodeSemaphore, 1);
         pixelPeriod = spinPeriod / (imageHeight);
         for (int line = 0; line < imageHeight; line++)
         {
@@ -157,5 +212,6 @@ void PngRenderer::renderTask()
             strip.show();
             delayMicroseconds(pixelPeriod - (micros() - delayCalc) - 10);
         }
+        xSemaphoreGive(xdecodeSemaphore);
     }
 }
